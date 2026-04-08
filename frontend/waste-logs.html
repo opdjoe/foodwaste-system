@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodTrace — Waste Logs</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family:'DM Sans',sans-serif; }
+  .brand { font-family:'DM Serif Display',serif; }
+  .nav-link { display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:12px;font-size:.875rem;font-weight:500;transition:all .15s; }
+  .nav-link.active { background:#1a2744;color:#fff; }
+  .nav-link:not(.active) { color:#64748b; }
+  .nav-link:not(.active):hover { background:#f1f5f9;color:#1a2744; }
+  .modal-bg { background:rgba(0,0,0,.45);backdrop-filter:blur(4px); }
+</style>
+</head>
+<body class="h-full bg-slate-50">
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-stone-100 flex flex-col shrink-0">
+    <div class="px-6 py-6 border-b border-stone-100">
+      <div class="brand text-[#1a2744] text-2xl">FoodTrace</div>
+      <div class="text-xs text-slate-400 mt-0.5">Inventory & Waste Analytics</div>
+    </div>
+    <nav class="flex-1 p-4 space-y-1">
+      <a href="dashboard.html"  class="nav-link">📊 Dashboard</a>
+      <a href="inventory.html"  class="nav-link">📦 Inventory</a>
+      <a href="waste-logs.html" class="nav-link active">📋 Waste Logs</a>
+      <a href="alerts.html"     class="nav-link">🔔 Alerts</a>
+      <div id="admin-nav" class="hidden"><a href="users.html" class="nav-link">👥 Users</a></div>
+    </nav>
+    <div class="p-4 border-t border-stone-100">
+      <div class="flex items-center gap-3 mb-3 px-2">
+        <div class="w-8 h-8 rounded-full bg-[#1a2744] flex items-center justify-center text-white text-sm font-bold" id="avatar">?</div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700" id="nav-username">—</div>
+          <div class="text-xs text-slate-400" id="nav-role">—</div>
+        </div>
+      </div>
+      <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="p-8 max-w-7xl mx-auto">
+
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Waste Logs</h1>
+          <p class="text-slate-400 text-sm mt-0.5">Log food waste and review history</p>
+        </div>
+        <button onclick="Modal.open('log-modal')"
+          class="px-4 py-2.5 bg-[#1a2744] text-white rounded-xl text-sm font-medium hover:bg-[#263561] transition">
+          + Log Waste
+        </button>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Logs</div>
+          <div class="text-2xl font-light text-slate-800" id="total-logs">—</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Weight</div>
+          <div class="text-2xl font-light text-slate-800" id="total-weight">—</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">This Month</div>
+          <div class="text-2xl font-light text-slate-800" id="month-logs">—</div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-100 bg-slate-50">
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Weight</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Reason</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Logged By</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Date & Time</th>
+            </tr>
+          </thead>
+          <tbody id="logs-table">
+            <tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Log Waste Modal -->
+<div id="log-modal" class="hidden fixed inset-0 modal-bg z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <h2 class="text-xl font-bold text-slate-800 mb-6">Log Food Waste</h2>
+    <form id="log-form" onsubmit="handleLogSubmit(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Inventory Item</label>
+        <select id="log-item" required
+          class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition bg-white">
+          <option value="">Select item…</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Weight (kg)</label>
+        <input id="log-weight" type="number" step="0.01" min="0.01" required placeholder="0.00"
+          class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Reason</label>
+        <input id="log-reason" type="text" maxlength="80" placeholder="e.g. Expired, Overproduced, Dropped"
+          class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="Modal.close('log-modal')"
+          class="flex-1 py-3 border border-stone-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition">Cancel</button>
+        <button type="submit"
+          class="flex-1 py-3 bg-[#1a2744] text-white rounded-xl font-medium hover:bg-[#263561] transition">Submit Log</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+Auth.requireAuth();
+Utils.renderNav();
+const user = Auth.getUser();
+if (user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
+document.getElementById('avatar').textContent = (user.username||'?')[0].toUpperCase();
+
+let logs = [];
+
+async function loadLogs() {
+    const [logsRes, invRes] = await Promise.all([API.getWasteLogs(), API.getInventory()]);
+
+    if (invRes.ok && invRes.data.success) {
+        const sel = document.getElementById('log-item');
+        sel.innerHTML = '<option value="">Select item…</option>' +
+            invRes.data.data.map(i => `<option value="${i.id}">${i.name} (${i.currentQty} ${i.unit})</option>`).join('');
+    }
+
+    if (logsRes.ok && logsRes.data.success) {
+        logs = logsRes.data.data;
+        renderLogs(logs);
+        updateSummary(logs);
+    }
+}
+
+function updateSummary(logs) {
+    document.getElementById('total-logs').textContent = logs.length;
+    const totalWeight = logs.reduce((s, l) => s + l.weight, 0);
+    document.getElementById('total-weight').textContent = totalWeight.toFixed(2) + ' kg';
+
+    const now = new Date();
+    const thisMonth = logs.filter(l => {
+        const d = new Date(l.timestamp);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    document.getElementById('month-logs').textContent = thisMonth.length + ' logs';
+}
+
+function renderLogs(logs) {
+    const tbody = document.getElementById('logs-table');
+    if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">No logs found.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = logs.map(l => `
+      <tr class="border-b border-stone-50 hover:bg-slate-50/50 transition">
+        <td class="px-6 py-4 font-medium text-slate-800">${l.itemName}</td>
+        <td class="px-6 py-4 font-semibold text-slate-700">${Number(l.weight).toFixed(2)} <span class="font-normal text-slate-400">${l.itemUnit}</span></td>
+        <td class="px-6 py-4 text-slate-500">${l.reason || '—'}</td>
+        <td class="px-6 py-4 text-slate-500">${l.loggedBy}</td>
+        <td class="px-6 py-4 text-slate-400 text-xs">${Utils.formatDateTime(l.timestamp)}</td>
+      </tr>`).join('');
+}
+
+async function handleLogSubmit(e) {
+    e.preventDefault();
+    const dto = {
+        itemId: parseInt(document.getElementById('log-item').value),
+        weight: parseFloat(document.getElementById('log-weight').value),
+        reason: document.getElementById('log-reason').value.trim() || null,
+    };
+    const res = await API.createWasteLog(dto);
+    if (res.ok && res.data.success) {
+        Toast.success('Waste log recorded!');
+        Modal.close('log-modal');
+        document.getElementById('log-form').reset();
+        loadLogs();
+    } else {
+        Toast.error(res.data.message || 'Failed to log waste');
+    }
+}
+
+function logout() { Auth.clear(); window.location.href = 'index.html'; }
+loadLogs();
+</script>
+</body>
+</html>

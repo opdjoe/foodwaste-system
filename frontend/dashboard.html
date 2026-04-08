@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodTrace — Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { font-family: 'DM Sans', sans-serif; }
+  .brand { font-family: 'DM Serif Display', serif; }
+  .nav-link { @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all; }
+  .nav-link.active { background:#1a2744; color:#fff; }
+  .nav-link:not(.active) { color:#64748b; }
+  .nav-link:not(.active):hover { background:#f1f5f9; color:#1a2744; }
+  .stat-card { @apply bg-white rounded-2xl p-6 shadow-sm border border-stone-100; }
+  .fade-in { animation: fadeIn .4s ease forwards; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body class="h-full bg-slate-50">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+  <aside class="w-64 bg-white border-r border-stone-100 flex flex-col shrink-0">
+    <div class="px-6 py-6 border-b border-stone-100">
+      <div class="brand text-[#1a2744] text-2xl">FoodTrace</div>
+      <div class="text-xs text-slate-400 mt-0.5">Inventory & Waste Analytics</div>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+      <a href="dashboard.html"   class="nav-link active">📊 Dashboard</a>
+      <a href="inventory.html"   class="nav-link">📦 Inventory</a>
+      <a href="waste-logs.html"  class="nav-link">📋 Waste Logs</a>
+      <a href="alerts.html"      class="nav-link">🔔 Alerts</a>
+      <div id="admin-nav" class="hidden">
+        <a href="users.html" class="nav-link">👥 Users</a>
+      </div>
+    </nav>
+
+    <div class="p-4 border-t border-stone-100">
+      <div class="flex items-center gap-3 mb-3 px-2">
+        <div class="w-8 h-8 rounded-full bg-[#1a2744] flex items-center justify-center text-white text-sm font-bold" id="avatar">?</div>
+        <div>
+          <div class="text-sm font-semibold text-slate-700" id="nav-username">—</div>
+          <div class="text-xs text-slate-400" id="nav-role">—</div>
+        </div>
+      </div>
+      <button onclick="logout()"
+        class="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition">
+        Sign Out
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────── -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="p-8 max-w-7xl mx-auto">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-800">Dashboard</h1>
+          <p class="text-slate-400 text-sm mt-0.5">Analytics overview · <span id="today-date"></span></p>
+        </div>
+        <button onclick="loadAll()"
+          class="flex items-center gap-2 px-4 py-2 bg-[#1a2744] text-white rounded-xl text-sm font-medium hover:bg-[#263561] transition">
+          ↻ Refresh
+        </button>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 fade-in">
+        <div class="stat-card">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Waste (All Time)</div>
+          <div class="text-3xl font-light text-slate-800" id="stat-total-all">—</div>
+          <div class="text-xs text-slate-400 mt-1">kilograms</div>
+        </div>
+        <div class="stat-card">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Waste This Month</div>
+          <div class="text-3xl font-light text-slate-800" id="stat-total-month">—</div>
+          <div class="text-xs text-slate-400 mt-1">kilograms</div>
+        </div>
+        <div class="stat-card border-l-4 border-l-amber-400">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Low Stock Items</div>
+          <div class="text-3xl font-light text-amber-500" id="stat-low-stock">—</div>
+          <div class="text-xs text-slate-400 mt-1">items below threshold</div>
+        </div>
+        <div class="stat-card border-l-4 border-l-rose-400">
+          <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Expired Items</div>
+          <div class="text-3xl font-light text-rose-500" id="stat-expired">—</div>
+          <div class="text-xs text-slate-400 mt-1">items past expiry</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 class="text-sm font-semibold text-slate-700 mb-1">Weekly Waste Trend</h2>
+          <p class="text-xs text-slate-400 mb-4">Last 8 weeks — kg logged</p>
+          <canvas id="chart-trend" height="220"></canvas>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 class="text-sm font-semibold text-slate-700 mb-1">Waste by Item</h2>
+          <p class="text-xs text-slate-400 mb-4">Top wasted inventory items</p>
+          <canvas id="chart-items" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Bottom Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Top wasted item highlight -->
+        <div class="bg-gradient-to-br from-[#1a2744] to-[#0f3d2e] rounded-2xl p-6 text-white">
+          <div class="text-xs uppercase tracking-widest text-emerald-300/70 mb-3">Top Wasted Item</div>
+          <div class="text-2xl font-semibold" id="stat-top-item">—</div>
+          <div class="text-sm text-white/50 mt-1">most logged waste item</div>
+          <div class="mt-4 text-xs text-white/40">
+            Total logs: <span class="text-white font-medium" id="stat-logs-all">—</span>
+          </div>
+        </div>
+
+        <!-- Recent logs -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+          <h2 class="text-sm font-semibold text-slate-700 mb-4">Recent Waste Logs</h2>
+          <div id="recent-logs" class="space-y-2 text-sm">
+            <div class="text-slate-400 text-sm">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+Auth.requireAuth();
+Utils.renderNav();
+
+const user = Auth.getUser();
+if (user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
+document.getElementById('today-date').textContent = new Date().toDateString();
+const initials = (user.username || '?')[0].toUpperCase();
+document.getElementById('avatar').textContent = initials;
+
+let trendChart, itemsChart;
+
+async function loadAll() {
+    const [analyticsRes, logsRes] = await Promise.all([API.getAnalytics(), API.getWasteLogs()]);
+
+    if (analyticsRes.ok && analyticsRes.data.success) {
+        const d = analyticsRes.data.data;
+        document.getElementById('stat-total-all').textContent   = Number(d.totalWasteAllTime || 0).toFixed(1);
+        document.getElementById('stat-total-month').textContent = Number(d.totalWasteThisMonth || 0).toFixed(1);
+        document.getElementById('stat-low-stock').textContent   = d.lowStockItemCount ?? '0';
+        document.getElementById('stat-expired').textContent     = d.expiredItemCount ?? '0';
+        document.getElementById('stat-top-item').textContent    = d.topWastedItem || '—';
+        document.getElementById('stat-logs-all').textContent    = d.totalLogsAllTime ?? '0';
+        renderTrendChart(d.weeklyTrend || []);
+        renderItemsChart(d.wasteByItem || []);
+    }
+
+    if (logsRes.ok && logsRes.data.success) {
+        renderRecentLogs((logsRes.data.data || []).slice(0, 6));
+    }
+}
+
+function renderTrendChart(data) {
+    const labels = data.map(d => d.period);
+    const values = data.map(d => d.totalWaste);
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(document.getElementById('chart-trend'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Waste (kg)',
+                data: values,
+                borderColor: '#1a2744',
+                backgroundColor: 'rgba(26,39,68,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#1a2744',
+            }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+}
+
+function renderItemsChart(data) {
+    if (itemsChart) itemsChart.destroy();
+    const palette = ['#1a2744','#0f3d2e','#1d6b4a','#2d8c5a','#3aab6a','#10b981','#34d399','#6ee7b7','#a7f3d0','#d1fae5'];
+    itemsChart = new Chart(document.getElementById('chart-items'), {
+        type: 'doughnut',
+        data: {
+            labels: data.map(d => d.itemName),
+            datasets: [{
+                data: data.map(d => d.totalWaste),
+                backgroundColor: palette.slice(0, data.length),
+                borderWidth: 2,
+            }]
+        },
+        options: { plugins: { legend: { position: 'right', labels: { font: { size: 11 } } } } }
+    });
+}
+
+function renderRecentLogs(logs) {
+    const el = document.getElementById('recent-logs');
+    if (!logs.length) { el.innerHTML = '<div class="text-slate-400">No logs yet.</div>'; return; }
+    el.innerHTML = logs.map(l => `
+      <div class="flex items-center justify-between py-2 border-b border-stone-50 last:border-0">
+        <div>
+          <span class="font-medium text-slate-700">${l.itemName}</span>
+          <span class="text-slate-400 text-xs ml-2">${l.reason || '—'}</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="font-semibold text-slate-800">${Number(l.weight).toFixed(2)} kg</span>
+          <span class="text-xs text-slate-400">${Utils.formatDateTime(l.timestamp)}</span>
+        </div>
+      </div>`).join('');
+}
+
+function logout() { Auth.clear(); window.location.href = 'index.html'; }
+
+loadAll();
+</script>
+</body>
+</html>

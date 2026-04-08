@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodTrace — Sign In</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family: 'DM Sans', sans-serif; }
+  .brand { font-family: 'DM Serif Display', serif; }
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+  .fade-up { animation: fadeUp .5s ease forwards; opacity: 0; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .tab-active { background: #1a2744; color: #fff; }
+</style>
+</head>
+<body class="h-full bg-stone-50 grain">
+
+<div class="min-h-screen flex">
+
+  <!-- Left panel -->
+  <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#1a2744] to-[#0f3d2e] flex-col justify-between p-14 relative overflow-hidden">
+    <!-- Decorative circles -->
+    <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-white/5"></div>
+    <div class="absolute bottom-10 -left-20 w-64 h-64 rounded-full bg-emerald-400/10"></div>
+
+    <div>
+      <div class="brand text-white text-4xl mb-2">FoodTrace</div>
+      <p class="text-emerald-300/80 text-sm tracking-widest uppercase">Analytics System</p>
+    </div>
+
+    <div class="space-y-8">
+      <blockquote class="brand italic text-white/90 text-3xl leading-snug">
+        "Track waste.<br/>Protect margins.<br/>Feed smarter."
+      </blockquote>
+      <div class="flex gap-6">
+        <div class="text-center">
+          <div class="text-3xl font-light text-emerald-300">30%</div>
+          <div class="text-xs text-white/50 mt-1">Avg waste reduced</div>
+        </div>
+        <div class="w-px bg-white/10"></div>
+        <div class="text-center">
+          <div class="text-3xl font-light text-emerald-300">Real-time</div>
+          <div class="text-xs text-white/50 mt-1">Stock alerts</div>
+        </div>
+        <div class="w-px bg-white/10"></div>
+        <div class="text-center">
+          <div class="text-3xl font-light text-emerald-300">RBAC</div>
+          <div class="text-xs text-white/50 mt-1">Role security</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-white/30 text-xs">Monroe University · CS620 · 2026</p>
+  </div>
+
+  <!-- Right panel -->
+  <div class="flex-1 flex items-center justify-center px-6 py-12">
+    <div class="w-full max-w-md fade-up">
+
+      <div class="lg:hidden brand text-[#1a2744] text-3xl mb-8 text-center">FoodTrace</div>
+
+      <!-- Tab switcher -->
+      <div class="flex bg-stone-200 rounded-xl p-1 mb-8">
+        <button id="tab-login" onclick="switchTab('login')"
+          class="flex-1 py-2 rounded-lg text-sm font-medium transition-all tab-active" >Sign In</button>
+        <button id="tab-register" onclick="switchTab('register')"
+          class="flex-1 py-2 rounded-lg text-sm font-medium transition-all text-stone-600">Register</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Username</label>
+          <input id="login-username" type="text" placeholder="Enter username"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white text-stone-800
+              focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 focus:border-[#1a2744]
+              transition placeholder:text-stone-300"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Password</label>
+          <input id="login-password" type="password" placeholder="••••••••"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white text-stone-800
+              focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 focus:border-[#1a2744]
+              transition placeholder:text-stone-300"/>
+        </div>
+        <button type="submit" id="login-btn"
+          class="w-full py-3 bg-[#1a2744] text-white rounded-xl font-semibold
+            hover:bg-[#263561] active:scale-[.98] transition-all duration-150">
+          Sign In
+        </button>
+        <p class="text-center text-xs text-stone-400">
+          Demo: admin / password123 &nbsp;|&nbsp; manager / password123
+        </p>
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="register-form" onsubmit="handleRegister(event)" class="space-y-5 hidden">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Username</label>
+            <input id="reg-username" type="text" placeholder="username"
+              class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Role</label>
+            <select id="reg-role"
+              class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition">
+              <option value="STAFF">Staff</option>
+              <option value="MANAGER">Manager</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1.5">Password</label>
+          <input id="reg-password" type="password" placeholder="min 6 characters"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+        </div>
+        <button type="submit"
+          class="w-full py-3 bg-emerald-600 text-white rounded-xl font-semibold
+            hover:bg-emerald-700 active:scale-[.98] transition-all">
+          Create Account
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  Auth.redirectIfLoggedIn();
+
+  function switchTab(tab) {
+    const isLogin = tab === 'login';
+    document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+    document.getElementById('register-form').classList.toggle('hidden', isLogin);
+    document.getElementById('tab-login').classList.toggle('tab-active', isLogin);
+    document.getElementById('tab-register').classList.toggle('tab-active', !isLogin);
+    document.getElementById('tab-login').classList.toggle('text-stone-600', !isLogin);
+    document.getElementById('tab-register').classList.toggle('text-stone-600', isLogin);
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+
+    const result = await API.login({
+        username: document.getElementById('login-username').value.trim(),
+        password: document.getElementById('login-password').value,
+    });
+
+    if (result.ok && result.data.success) {
+        const { token, username, role } = result.data.data;
+        Auth.save(token, { username, role });
+        Toast.success('Welcome back, ' + username + '!');
+        setTimeout(() => window.location.href = 'dashboard.html', 600);
+    } else {
+        Toast.error(result.data.message || 'Invalid credentials');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+    }
+  }
+
+  async function handleRegister(e) {
+    e.preventDefault();
+    const result = await API.register({
+        username: document.getElementById('reg-username').value.trim(),
+        password: document.getElementById('reg-password').value,
+        email:    document.getElementById('reg-email').value.trim(),
+        role:     document.getElementById('reg-role').value,
+    });
+
+    if (result.ok && result.data.success) {
+        Toast.success('Account created! Please sign in.');
+        switchTab('login');
+    } else {
+        const msg = result.data.data
+            ? Object.values(result.data.data).join(', ')
+            : result.data.message;
+        Toast.error(msg || 'Registration failed');
+    }
+  }
+</script>
+</body>
+</html>

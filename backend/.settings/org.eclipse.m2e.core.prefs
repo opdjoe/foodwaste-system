@@ -1,0 +1,7 @@
+eclipse.preferences.version=1
+activeProfiles=
+has_lifecycle_mapping_metadata=true
+resolveWorkspaceProjects=true
+resourceFilterGoals=process-resources resources\:testResources
+skipCompilerPlugin=true
+version=1

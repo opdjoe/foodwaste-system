@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodTrace — Alerts</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  * { font-family:'DM Sans',sans-serif; } .brand { font-family:'DM Serif Display',serif; }
+  .nav-link { display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:12px;font-size:.875rem;font-weight:500;transition:all .15s; }
+  .nav-link.active { background:#1a2744;color:#fff; }
+  .nav-link:not(.active) { color:#64748b; }
+  .nav-link:not(.active):hover { background:#f1f5f9;color:#1a2744; }
+  .modal-bg { background:rgba(0,0,0,.45);backdrop-filter:blur(4px); }
+</style>
+</head>
+<body class="h-full bg-slate-50">
+<div class="flex h-screen overflow-hidden">
+  <aside class="w-64 bg-white border-r border-stone-100 flex flex-col shrink-0">
+    <div class="px-6 py-6 border-b border-stone-100"><div class="brand text-[#1a2744] text-2xl">FoodTrace</div><div class="text-xs text-slate-400 mt-0.5">Inventory & Waste Analytics</div></div>
+    <nav class="flex-1 p-4 space-y-1">
+      <a href="dashboard.html"  class="nav-link">📊 Dashboard</a>
+      <a href="inventory.html"  class="nav-link">📦 Inventory</a>
+      <a href="waste-logs.html" class="nav-link">📋 Waste Logs</a>
+      <a href="alerts.html"     class="nav-link active">🔔 Alerts</a>
+      <div id="admin-nav" class="hidden"><a href="users.html" class="nav-link">👥 Users</a></div>
+    </nav>
+    <div class="p-4 border-t border-stone-100">
+      <div class="flex items-center gap-3 mb-3 px-2">
+        <div class="w-8 h-8 rounded-full bg-[#1a2744] flex items-center justify-center text-white text-sm font-bold" id="avatar">?</div>
+        <div><div class="text-sm font-semibold text-slate-700" id="nav-username">—</div><div class="text-xs text-slate-400" id="nav-role">—</div></div>
+      </div>
+      <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 rounded-xl transition">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-y-auto">
+    <div class="p-8 max-w-5xl mx-auto">
+      <div class="flex items-center justify-between mb-6">
+        <div><h1 class="text-2xl font-bold text-slate-800">Alert Thresholds</h1><p class="text-slate-400 text-sm mt-0.5">Configure low-stock notification thresholds per item</p></div>
+        <button onclick="openAddModal()" class="px-4 py-2.5 bg-[#1a2744] text-white rounded-xl text-sm font-medium hover:bg-[#263561] transition">+ Add Threshold</button>
+      </div>
+
+      <!-- Triggered alerts banner -->
+      <div id="alerts-banner" class="hidden mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+        <div class="font-semibold text-amber-800 mb-2">⚠ Active Low-Stock Alerts</div>
+        <div id="triggered-list" class="text-sm text-amber-700 space-y-1"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-100 bg-slate-50">
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Min Threshold</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Max Threshold</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Notifications</th>
+              <th class="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="text-right px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="alerts-table"><tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="alert-modal" class="hidden fixed inset-0 modal-bg z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+    <h2 class="text-xl font-bold text-slate-800 mb-6" id="alert-modal-title">Add Alert Threshold</h2>
+    <form id="alert-form" onsubmit="handleAlertSubmit(event)" class="space-y-4">
+      <input type="hidden" id="alert-id"/>
+      <div>
+        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Inventory Item</label>
+        <select id="alert-item" required class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 bg-white">
+          <option value="">Select item…</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Min Threshold</label>
+          <input id="alert-min" type="number" step="0.01" min="0" required placeholder="0.00"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Max Threshold</label>
+          <input id="alert-max" type="number" step="0.01" min="0" placeholder="Optional"
+            class="w-full px-4 py-3 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1a2744]/30 transition"/>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <input id="alert-notify" type="checkbox" checked class="w-4 h-4 accent-[#1a2744]"/>
+        <label for="alert-notify" class="text-sm text-slate-600">Enable notifications</label>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="Modal.close('alert-modal')"
+          class="flex-1 py-3 border border-stone-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition">Cancel</button>
+        <button type="submit" class="flex-1 py-3 bg-[#1a2744] text-white rounded-xl font-medium hover:bg-[#263561] transition">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+Auth.requireAuth();
+Utils.renderNav();
+const user = Auth.getUser();
+if (user.role === 'ADMIN') document.getElementById('admin-nav').classList.remove('hidden');
+document.getElementById('avatar').textContent = (user.username||'?')[0].toUpperCase();
+
+let allAlerts = [];
+
+async function loadAlerts() {
+    const [alertsRes, invRes] = await Promise.all([API.getAlerts(), API.getInventory()]);
+    if (invRes.ok && invRes.data.success) {
+        const sel = document.getElementById('alert-item');
+        sel.innerHTML = '<option value="">Select item…</option>' +
+            invRes.data.data.map(i => `<option value="${i.id}">${i.name}</option>`).join('');
+    }
+    if (alertsRes.ok && alertsRes.data.success) {
+        allAlerts = alertsRes.data.data;
+        renderAlerts(allAlerts);
+        renderBanner(allAlerts.filter(a => a.currentlyTriggered));
+    }
+}
+
+function renderBanner(triggered) {
+    const banner = document.getElementById('alerts-banner');
+    if (!triggered.length) { banner.classList.add('hidden'); return; }
+    banner.classList.remove('hidden');
+    document.getElementById('triggered-list').innerHTML =
+        triggered.map(a => `<div>• <strong>${a.itemName}</strong> is below minimum threshold (${a.minThreshold})</div>`).join('');
+}
+
+function renderAlerts(alerts) {
+    const tbody = document.getElementById('alerts-table');
+    if (!alerts.length) { tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">No thresholds configured.</td></tr>'; return; }
+    tbody.innerHTML = alerts.map(a => `
+      <tr class="border-b border-stone-50 hover:bg-slate-50/50 transition">
+        <td class="px-6 py-4 font-medium text-slate-800">${a.itemName}</td>
+        <td class="px-6 py-4 text-slate-700 font-semibold">${a.minThreshold}</td>
+        <td class="px-6 py-4 text-slate-500">${a.maxThreshold ?? '—'}</td>
+        <td class="px-6 py-4">${a.notificationEnabled ? '<span class="text-emerald-600 font-medium">Enabled</span>' : '<span class="text-slate-400">Disabled</span>'}</td>
+        <td class="px-6 py-4">${a.currentlyTriggered ? '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">⚠ Triggered</span>' : '<span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">✓ OK</span>'}</td>
+        <td class="px-6 py-4 text-right">
+          <button onclick='openEditModal(${JSON.stringify(a)})' class="text-[#1a2744] hover:underline font-medium mr-3">Edit</button>
+          <button onclick="deleteAlert(${a.id})" class="text-rose-500 hover:underline font-medium">Delete</button>
+        </td>
+      </tr>`).join('');
+}
+
+function openAddModal() {
+    document.getElementById('alert-modal-title').textContent = 'Add Alert Threshold';
+    document.getElementById('alert-id').value = '';
+    document.getElementById('alert-form').reset();
+    document.getElementById('alert-notify').checked = true;
+    Modal.open('alert-modal');
+}
+
+function openEditModal(a) {
+    document.getElementById('alert-modal-title').textContent = 'Edit Alert Threshold';
+    document.getElementById('alert-id').value = a.id;
+    document.getElementById('alert-item').value = a.itemId;
+    document.getElementById('alert-min').value = a.minThreshold;
+    document.getElementById('alert-max').value = a.maxThreshold || '';
+    document.getElementById('alert-notify').checked = a.notificationEnabled;
+    Modal.open('alert-modal');
+}
+
+async function handleAlertSubmit(e) {
+    e.preventDefault();
+    const id = document.getElementById('alert-id').value;
+    const dto = {
+        itemId: parseInt(document.getElementById('alert-item').value),
+        minThreshold: parseFloat(document.getElementById('alert-min').value),
+        maxThreshold: document.getElementById('alert-max').value ? parseFloat(document.getElementById('alert-max').value) : null,
+        notificationEnabled: document.getElementById('alert-notify').checked,
+    };
+    const res = id ? await API.updateAlert(id, dto) : await API.createAlert(dto);
+    if (res.ok && res.data.success) {
+        Toast.success(id ? 'Alert updated!' : 'Alert created!');
+        Modal.close('alert-modal');
+        loadAlerts();
+    } else {
+        Toast.error(res.data.message || 'Save failed');
+    }
+}
+
+async function deleteAlert(id) {
+    if (!confirm('Remove this alert threshold?')) return;
+    const res = await API.deleteAlert(id);
+    if (res.ok && res.data.success) { Toast.success('Alert removed'); loadAlerts(); }
+    else Toast.error(res.data.message || 'Delete failed');
+}
+
+function logout() { Auth.clear(); window.location.href = 'index.html'; }
+loadAlerts();
+</script>
+</body>
+</html>
